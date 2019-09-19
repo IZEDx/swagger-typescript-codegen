@@ -25,15 +25,28 @@ const isProxyHeader = (parameter: Parameter) =>
 const isNotParameterToBeIgnored = (parameter: Parameter) =>
   !isExcludeFromBindingHeader(parameter) && !isProxyHeader(parameter);
 
-export const getParametersForMethod = (
+export function getParametersForMethod(
   globalParams: ReadonlyArray<Parameter>,
-  params: ReadonlyArray<Parameter> = [],
+  preParams: ReadonlyArray<Parameter> = [],
   swagger: Swagger
-): TypeSpecParameter[] =>
-  params
+): TypeSpecParameter[] {
+  const params: Parameter[] = [];
+
+  for (const p of preParams) {
+    const idx = params.findIndex(p2 => p2.name === p.name);
+
+    if (idx === -1) {
+      params.push(p);
+    } else if (p.required && !params[idx].required) {
+      params[idx] = p;
+    }
+  }
+
+  return params
     .concat(globalParams)
     .filter(isNotParameterToBeIgnored)
     .map((parameter: Parameter) => makeTypeSpecParameter(parameter, swagger));
+}
 
 function makeTypespecParameterFromSwaggerParameter(
   parameter: Parameter,
